@@ -1,9 +1,6 @@
 package yin
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -18,10 +15,20 @@ type RouterManager interface {
 
 // 路由接口
 type Router interface {
-	Method() string // 取得提交方式
-	Path() string   // 取得path
-	String() string // 取得字符串
-	Hash() string   // 取得路由hash值
+	Method() string         // 取得提交方式
+	Path() string           // 取得path
+	String() string         // 取得字符串
+	Hash() string           // 取得路由hash值
+	Handler() func(Context) // 取得处理程序
+}
+
+func NewRouter(method string, path string, handler func(Context)) Router {
+	r := &coreRouter{
+		method:  method,
+		path:    path,
+		handler: handler,
+	}
+	return r
 }
 
 type coreRouterManager struct {
@@ -51,8 +58,9 @@ func (core *coreRouterManager) Count() int64 {
 }
 
 type coreRouter struct {
-	method string // 提交方式
-	path   string // url path
+	method  string        // 提交方式
+	path    string        // url path
+	handler func(Context) // 处理函数
 }
 
 func (core *coreRouter) Method() string {
@@ -61,15 +69,16 @@ func (core *coreRouter) Method() string {
 func (core *coreRouter) Path() string {
 	return core.path
 }
+
 func (core *coreRouter) String() string {
 	// TODO
 	return ""
 }
 
 func (core *coreRouter) Hash() string {
-	hashStr := fmt.Sprintf("%s-%s-yin", core.method, core.path)
-	h := md5.New()
-	h.Write([]byte(hashStr))
-	hashBytes := h.Sum(nil)
-	return hex.EncodeToString(hashBytes)
+	return getRouterHash(core.method, core.path)
+}
+
+func (core *coreRouter) Handler() func(Context) {
+	return core.handler
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/cn-ygf/yin"
 	"log"
 	"os"
@@ -12,7 +11,6 @@ import (
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 
-	fmt.Println("hello world")
 	r := yin.Default()
 	r.GET("/test", func(c yin.Context) {
 		c.HTML(200, "<h1>test</h1>")
