@@ -3,7 +3,9 @@ package yin
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
+	"os"
 )
 
 type BodyContent interface{
@@ -14,8 +16,9 @@ type BodyContent interface{
 type Context interface {
 	HTML(int, string)
 	JSON(int, interface{})
-	FILE(int, string)
+	FILE(int, string,string)
 	SUCCESS(map[string]interface{})
+	ERROR(map[string]interface{})
 	Body()BodyContent
 }
 
@@ -62,8 +65,32 @@ func (core *coreContext) SUCCESS(content map[string]interface{}) {
 	core.JSON(200,content)
 }
 
-func (core *coreContext) FILE(stateCode int, fileName string) {
+func (core *coreContext) ERROR(content map[string]interface{}){
+	if content == nil{
+		content = make(map[string]interface{})
+	}
+	content["status"] = "error"
+	core.JSON(200,content)
+}
+
+func (core *coreContext) FILE(stateCode int, fileName string,mod string) {
 	// TODO 返回文件下载
+	f,err := os.Open(fileName)
+	if err != nil{
+		core.ERROR(nil)
+		log.Println(err)
+		return
+	}
+	defer f.Close()
+	core.w.WriteHeader(stateCode)
+	core.w.Header().Set("Content-Type",mod)
+	_,err = io.Copy(core.w,f)
+	if err != nil{
+		core.ERROR(nil)
+		log.Println(err)
+		return
+	}
+
 }
 
 func (core *coreContext) Body()BodyContent{
@@ -73,7 +100,9 @@ func (core *coreContext) Body()BodyContent{
 // 解析主体 post from json get
 func (core *coreContext) parseBody(){
 	// post json解析
-	if core.r.Method == "POST" && core.r.Header.Get("Content-Type") == "application/json"{
+	log.Println(core.r.Method)
+	log.Println(core.r.Header.Get("Content-Type"))
+	if core.r.Method == "POST" && core.r.Header.Get("Content-Type") == "application/json; charset=utf-8"{
 		err := core.r.ParseForm()
 		if err != nil{
 			return
